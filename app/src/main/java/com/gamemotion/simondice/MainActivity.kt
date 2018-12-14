@@ -28,6 +28,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Muestra la ronda inicial - Ronda 1
+
         this.setTitle("Simon Dice - Ronda " + (MaxNum -2))
 
         // Asigno los objetos en pantalla para trabajar con ellos
@@ -47,48 +49,50 @@ class MainActivity : AppCompatActivity() {
         btnAmarillo.setBackgroundColor(Color.YELLOW)
         progreso.setProgress(0);
 
-        // Primera ejecución del programa
+        // Primera ejecución del programa con el boton StartRonda
 
         btnStart.setOnClickListener() {
+
+            // Esconde el boton de Iniciar y empieza la secuencia
+
             btnStart.visibility = View.INVISIBLE
-            Start()
+            StartRonda()
         }
     }
 
-    fun Start(){
+    fun StartRonda(){
+
+        // Muestro el titulo - Ronda, y reinicia el progreso a 0
 
         this.setTitle("Simon Dice - Ronda " + (MaxNum -2))
         progreso.setProgress(0);
 
+        // Dice cuantos colores dira Simon en su ronda
+
         this.toast1 = Toast.makeText(applicationContext, "Simon dice $MaxNum colores", Toast.LENGTH_SHORT)
         this.toast1.show()
 
-        startSimon()
+        // Gestiona los botones clickables a 'false' antes de empezar la secuencia a mostrar
 
-        // Gestiono los Listener de los botones despues de generar la partida
+        btnRojo.isClickable = false
+        btnAmarillo.isClickable = false
+        btnAzul.isClickable = false
+        btnVerde.isClickable = false
 
-        btnRojo.setOnClickListener() {
-            checkIt(0)
-        }
+        // Inicia la secuencia
 
-        btnAmarillo.setOnClickListener() {
-            checkIt(1)
-        }
-
-        btnAzul.setOnClickListener() {
-            checkIt(2)
-        }
-
-        btnVerde.setOnClickListener() {
-            checkIt(3)
-        }
+        startSecuencia()
     }
 
     // Inicia la secuencia de colores para mostrar su orden
 
-    fun startSimon() {
+    fun startSecuencia() {
+
+        // Asigno el delay inicial de los parpadeos de los botones
 
         var delayed: Long = 2000;
+
+        // Genera tantas combinaciones como Simon diga
 
         for (i in 0..MaxNum -1 step 1) {
 
@@ -101,9 +105,36 @@ class MainActivity : AppCompatActivity() {
                 3 -> lightButton(btnVerde, Color.argb(80, 0, 255, 0), Color.GREEN, delayed, i)
             }
 
+            // Añade el boton que parpedea a un arrayList llamado 'secuencia' para su posterior comprobación
+            // contra la selección del cliente y añade más delay al siguiente parpadeo del boton
+
             secuencia.add(x)
             delayed += 2000
         }
+
+        delayed -= 2000
+
+        Handler().postDelayed({
+
+            // Activa los Listener de los botones cuando Simon finaliza de mostrar las combinaciones de la Ronda
+
+            btnRojo.setOnClickListener() {
+                checkIt(0)
+            }
+
+            btnAmarillo.setOnClickListener() {
+                checkIt(1)
+            }
+
+            btnAzul.setOnClickListener() {
+                checkIt(2)
+            }
+
+            btnVerde.setOnClickListener() {
+                checkIt(3)
+            }
+
+        }, delayed)
     }
 
     // Gestiona los "parpadeos" de color cuando Simon dice...
@@ -113,31 +144,27 @@ class MainActivity : AppCompatActivity() {
         Handler().postDelayed({
             boton.setBackgroundColor(argb)
 
+            // El boton vuelve a su color original tras pasar 1 segundo y muestra un texto de "Debug"
+
             Handler().postDelayed({
-                boton.setText("Número: " + (i + 1))
                 boton.setBackgroundColor(colorOriginal)
             }, 1000)
         }, delayed)
     }
 
-    // Checkea si ha fallado o no
+    // Checkea si la selección del cliente en incorrecta
 
     fun checkIt(nBoton: Int) {
 
-        if (cliente < (MaxNum -1)) {
+        if (secuencia.get(cliente) == nBoton) {
 
-            if (secuencia.get(cliente) == nBoton) {
+            if (cliente < (MaxNum -1)) { // El cliente acierta la selección actual, pero aun le quedan más en la ronda
 
                 cliente++
                 progreso.progress = (((cliente.toFloat() * 10)/ (secuencia.size.toFloat() * 10)) * 100).toInt()
                 toast1.cancel()
-            } else {
 
-                toast1.setText("INCORRECTO")
-            }
-        } else if (cliente == (MaxNum -1)) {
-
-            if (secuencia.get(cliente) == nBoton) {
+            } else if (cliente == (MaxNum -1)) { // El cliente acierta toda la ronda y se prepara para la siguiente
 
                 cliente++
                 progreso.progress = (((cliente.toFloat() * 10)/ (secuencia.size.toFloat() * 10)) * 100).toInt()
@@ -145,11 +172,18 @@ class MainActivity : AppCompatActivity() {
                 MaxNum += 1
                 cliente = 0
                 secuencia.clear()
-                btnStart.visibility = View.VISIBLE
-            } else {
 
-                toast1.setText("INCORRECTO")
+                StartRonda()
             }
+
+        } else { // El cliente falla, se le avisa y vuelve a iniciar desde el nivel más básico
+
+            MaxNum = 3
+            progreso.progress = 0
+            cliente = 0
+            secuencia.clear()
+            btnStart.visibility = View.VISIBLE
+            toast1.setText("INCORRECTO, REINICIO COMPLETADO")
         }
 
         toast1.show()
